@@ -1,6 +1,6 @@
-;;; company-eudc.el --- Company-Mode Completion Backend for EUCD  -*- lexical-binding: t -*-
+;;; company-eudc.el --- Company-Mode Completion Backend for EUDC  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2021 condition-alpha.com
+;; Copyright (C) 2020-2021 Free Software Foundation, Inc.
 
 ;; Author: Alexander Adolf <emacs@condition-alpha.com>
 ;; Maintainer: Alexander Adolf <emacs@condition-alpha.com>
