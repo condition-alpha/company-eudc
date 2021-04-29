@@ -5,7 +5,7 @@
 ;; Author: Alexander Adolf <emacs@condition-alpha.com>
 ;; Maintainer: Alexander Adolf <emacs@condition-alpha.com>
 ;; Package-Version: 1.0
-;; Package-Requires: ((emacs "25.1") (company "0.9"))
+;; Package-Requires: ((emacs "27.1") (company "0.9"))
 ;; Keywords: comm, abbrev, convenience, matching, mail
 ;; URL: https://github.com/condition-alpha/company-eudc
 
@@ -38,24 +38,9 @@
 
 ;;; Code:
 
-;;{{{      Internal cooking
-
 (require 'eudc)
 (require 'company)
 (require 'cl-lib)
-
-(defun company-eudc--email-address-from-alist (rec)
-  "Generate an email address string (\"first last <email>\") from the REC attribute list."
-  (let* ((name (cdr (assoc 'name rec)))
-	 (firstname (cdr (assoc 'firstname rec)))
-	 (email (cdr (assoc 'email rec)))
-	 (candidate ""))
-    (if firstname
-	(setq candidate (format "%s %s <%s>" firstname name email))
-      (setq candidate (format "%s <%s>" name email)))
-    candidate))
-
-;;}}}
 
 ;;{{{      High-level interfaces
 
@@ -92,18 +77,25 @@ For the semantics of COMMAND, ARG, and IGNORED see `company-backends'."
   (interactive (list 'interactive))
   (pcase command
     (`interactive (company-begin-backend #'company-eudc))
-    (`prefix (and (derived-mode-p 'message-mode)
-		  (let ((case-fold-search t))
-		    (looking-back
-		     "^\\([^ :]*-\\)?\\(To\\|B?Cc\\|From\\|Reply-to\\):.*? *\\([^,;]*\\)"
-		     (line-beginning-position)))
-		  (company-grab-symbol)))
-    (`candidates (let* ((q-result (eudc-query `((name . ,arg)))))
-		   (cl-loop for person-record in q-result
-			    collect (company-eudc--email-address-from-alist
-				     person-record))))
+    (`prefix (let ((prefix (save-excursion
+		             (buffer-substring-no-properties
+		              (save-excursion
+		                (if (re-search-backward "\\([:,]\\|^\\)[ \t]*"
+					                (point-at-bol) 'move)
+			            (goto-char (match-end 0)))
+		                (point))
+		              (point)))))
+               (and (derived-mode-p 'message-mode)
+		    (let ((case-fold-search t))
+		      (looking-back
+		       "^\\([^ :]*-\\)?\\(To\\|B?Cc\\|From\\|Reply-to\\):.*? *\\([^,;]*\\)"
+		       (line-beginning-position)))
+		    prefix)))
+    (`candidates (eudc-query-with-words (split-string company-prefix "[ \t]+")))
     (`match (let* ((start 0) (end 0) res)
-              (while (setq start (string-match company-prefix arg end))
+              (while (setq start (string-match
+                                  (regexp-opt (split-string company-prefix "[ \t]+"))
+                                  arg end))
                 (setq end (match-end 0))
                 (push (cons start end) res))
               (nreverse res)))
@@ -127,7 +119,10 @@ To get this behaviour, do
 If you have configured many and/or slow servers for EUDC, this
 will block Emacs for some time (i.e. until EUDC has delivered its
 results).  If this is a frequent issue, and you would like to
-avoid this, use `company-eudc-expand-inline' instead."
+avoid this, use `company-eudc-expand-inline' instead.
+
+To control how lookups are performed, you may wish to customise
+the variable `eudc-inline-query-format'."
   (interactive)
   (add-to-list 'company-backends #'company-eudc)
   (add-hook 'message-mode-hook
@@ -156,7 +151,10 @@ The advantage of binding `company-eudc-expand-inline' to a key,
 instead of using `eudc-expand-inline' directly, is that
 `company-eudc-expand-inline' uses the company mode user
 interface, whereas `eudc-expand-inline' provides its own user
-interface, and which is different from company mode's."
+interface, and which is different from company mode's.
+
+To control how lookups are performed, you may wish to customise
+the variable `eudc-inline-query-format'."
   (interactive)
   (company-begin-backend #'company-eudc))
 
