@@ -76,6 +76,8 @@ return fast always.
 
 ## Things to Keep in Mind
 
+### Limited Completion Scope
+
 `company-eudc` will only provide completion candidates if, and only
 if, all of the following apply:
 
@@ -88,3 +90,13 @@ if, all of the following apply:
 This prevents most likely useless completion proposals with email
 addresses when typing names in the body of an email message ("Dear
 John, ..."), or in non email related modes.
+
+### Query Semantics
+
+To assemble the query string, `company-eudc` collects all text
+preceding the cursor, which is not part of the header field label, or
+another email address. This means that you can e.g. type "John Smith",
+invoke `company-eudc-expand-inline`, and "John Smith" will be passed
+to EUDC as the query string. How EUDC handles multi-word queries is
+controlled by the EUDC variable `eudc-inline-query-format` (which
+see).
